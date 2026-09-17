@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "LICENSE"]
+  pull_request:
+    paths-ignore: ["**.md", "LICENSE"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: shellcheck
+        run: shellcheck scripts/*.sh packaging/AppRun
+
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+
+      - name: Desktop file
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends desktop-file-utils
+          desktop-file-validate packaging/AnycubicSlicer.desktop
+
+  build-test:
+    needs: lint
+    uses: ./.github/workflows/build-test.yml

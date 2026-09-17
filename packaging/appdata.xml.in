@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.anycubic.AnycubicSlicer</id>
+  <name>AnycubicSlicer</name>
+  <summary>3D printing software for Anycubic printers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <developer id="com.anycubic">
+    <name>Anycubic</name>
+  </developer>
+  <description>
+    <p>Anycubic Slicer Next prepares 3D models for printing on Anycubic FDM printers.</p>
+    <p>This AppImage is an unofficial repackaging of the official Anycubic Debian package.</p>
+  </description>
+  <launchable type="desktop-id">AnycubicSlicer.desktop</launchable>
+  <url type="homepage">https://www.anycubic.com/pages/anycubic-slicer-next</url>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+  <categories>
+    <category>Graphics</category>
+    <category>Engineering</category>
+  </categories>
+</component>

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=AnycubicSlicer
+GenericName=3D Printing Software
+Comment=Slicer for Anycubic 3D printers
+Icon=AnycubicSlicer
+Exec=AnycubicSlicerNext %U
+Terminal=false
+Type=Application
+MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;x-scheme-handler/acnext;
+Categories=Graphics;3DGraphics;Engineering;
+Keywords=3D;Printing;Slicer;slice;printer;convert;gcode;stl;obj;amf;
+StartupNotify=false
+StartupWMClass=AnycubicSlicerNext

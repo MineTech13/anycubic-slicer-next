@@ -1,0 +1,67 @@
+#!/bin/bash
+# AppRun launcher for Anycubic Slicer Next.
+#
+# Every environment variable below is only set when you have not set it already,
+# so any workaround can be overridden from the command line, e.g.:
+#   WEBKIT_DISABLE_DMABUF_RENDERER=0 ./AnycubicSlicer-x86_64.AppImage
+#
+# Extra switches:
+#   ANYCUBIC_SAFE_GFX=1       restore the full set of legacy rendering workarounds
+#                             (forces Mesa EGL + disables WebKit compositing)
+#   ZINK_FORCE_OVERRIDE=1     run OpenGL through Mesa's Zink (Vulkan) driver
+#   ZINK_DISABLE_OVERRIDE=1   never switch to Zink automatically
+#   ANYCUBIC_KEEP_LOCALE=1    do not force LC_ALL=C
+
+DIR="$(dirname "$(readlink -f "$0")")"
+
+export LD_LIBRARY_PATH="$DIR/lib:$DIR/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# The slicer segfaults when locale data is not as expected (workaround from OrcaSlicer).
+if [ "${ANYCUBIC_KEEP_LOCALE:-0}" != "1" ]; then
+  export LC_ALL=C
+fi
+
+# Resources live at the AppDir root; do NOT cd into $DIR (it breaks file dialogs).
+export ANYCUBIC_RESOURCES_PATH="${ANYCUBIC_RESOURCES_PATH:-$DIR/resources}"
+
+is_nvidia=0
+if [ -e /proc/driver/nvidia/version ]; then
+  is_nvidia=1
+fi
+
+MESA_EGL_JSON=""
+for f in /usr/share/glvnd/egl_vendor.d/50_mesa.json /etc/glvnd/egl_vendor.d/50_mesa.json; do
+  if [ -f "$f" ]; then
+    MESA_EGL_JSON="$f"
+    break
+  fi
+done
+
+# Newer proprietary NVIDIA drivers (>555) under Wayland: optionally route GL through Zink.
+if [ "$is_nvidia" = "1" ] && [ "${XDG_SESSION_TYPE:-}" = "wayland" ] && [ "${ZINK_DISABLE_OVERRIDE:-0}" != "1" ]; then
+  driver_major="$(sed -nE 's/.*Kernel Module[^0-9]*([0-9]+)\..*/\1/p' /proc/driver/nvidia/version 2>/dev/null | head -n1)"
+  if [ -n "$driver_major" ] && [ "$driver_major" -gt 555 ] 2>/dev/null; then
+    ZINK_FORCE_OVERRIDE=1
+  fi
+fi
+
+if [ "${ZINK_FORCE_OVERRIDE:-0}" = "1" ] && [ -n "$MESA_EGL_JSON" ]; then
+  export __GLX_VENDOR_LIBRARY_NAME=mesa
+  export __EGL_VENDOR_LIBRARY_FILENAMES="$MESA_EGL_JSON"
+  export MESA_LOADER_DRIVER_OVERRIDE=zink
+  export GALLIUM_DRIVER=zink
+fi
+
+# WebKit (Workbench / device pages) rendering: DMA-BUF renderer is the usual culprit
+# for blank web views on Intel, NVIDIA and in sandboxes.
+export WEBKIT_DISABLE_DMABUF_RENDERER="${WEBKIT_DISABLE_DMABUF_RENDERER:-1}"
+
+if [ "${ANYCUBIC_SAFE_GFX:-0}" = "1" ]; then
+  # Legacy behaviour of older community AppImages.
+  if [ -n "$MESA_EGL_JSON" ]; then
+    export __EGL_VENDOR_LIBRARY_FILENAMES="${__EGL_VENDOR_LIBRARY_FILENAMES:-$MESA_EGL_JSON}"
+  fi
+  export WEBKIT_DISABLE_COMPOSITING_MODE="${WEBKIT_DISABLE_COMPOSITING_MODE:-1}"
+fi
+
+exec "$DIR/bin/AnycubicSlicerNext" "$@"
