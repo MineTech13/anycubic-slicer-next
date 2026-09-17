@@ -69,7 +69,7 @@ jobs:
             libdbus-1-3 zlib1g gstreamer1.0-libav gstreamer1.0-plugins-good \
             xvfb xauth desktop-file-utils appstream
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: appimage
           path: dist
