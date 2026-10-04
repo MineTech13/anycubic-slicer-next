@@ -9,6 +9,8 @@ set -euo pipefail
 APPIMAGE="$(realpath "${1:?usage: $0 path/to/AppImage}")"
 # shellcheck source=scripts/lib/test-common.sh
 source "$(dirname "$0")/lib/test-common.sh"
+# shellcheck source=packaging/app.env
+source "$(dirname "$0")/../packaging/app.env"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -34,7 +36,7 @@ else
 fi
 ROOT="$WORK/squashfs-root"
 for p in AppRun bin/AnycubicSlicerNext lib resources/fonts resources/profiles resources/images/AnycubicSlicer.png \
-         AnycubicSlicer.desktop AnycubicSlicer.png .DirIcon VERSION usr/share/metainfo/com.anycubic.AnycubicSlicer.appdata.xml; do
+         "$APP_ID.desktop" "$APP_ID.png" .DirIcon VERSION "usr/share/metainfo/$APP_ID.appdata.xml"; do
   check "contains $p" test -e "$ROOT/$p"
 done
 check "AppRun is executable" test -x "$ROOT/AppRun"
@@ -46,13 +48,14 @@ version_in_name="$(basename "$APPIMAGE" | grep -oE '[0-9]+(\.[0-9]+)+' | head -1
 check "VERSION file matches file name ($version_in_name)" bash -c "[ \"\$(cat '$ROOT/VERSION')\" = '$version_in_name' ]"
 
 if command -v desktop-file-validate >/dev/null 2>&1; then
-  check "desktop file validates" desktop-file-validate "$ROOT/AnycubicSlicer.desktop"
+  check "desktop file validates" desktop-file-validate "$ROOT/$APP_ID.desktop"
 else
   skip "desktop-file-validate not installed"
 fi
 if command -v appstreamcli >/dev/null 2>&1; then
-  check "appdata validates" appstreamcli validate --no-net --pedantic=no "$ROOT/usr/share/metainfo/com.anycubic.AnycubicSlicer.appdata.xml"
+  check "appdata validates" appstreamcli validate --no-net --pedantic=no "$ROOT/usr/share/metainfo/$APP_ID.appdata.xml"
 fi
+check "AppStream ID is $APP_ID" grep -q "<id>$APP_ID</id>" "$ROOT/usr/share/metainfo/$APP_ID.appdata.xml"
 
 update_info="$("$APPIMAGE" --appimage-updateinformation 2>/dev/null || true)"
 if [ -n "$update_info" ]; then

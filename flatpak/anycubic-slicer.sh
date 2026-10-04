@@ -3,7 +3,7 @@
 #
 # Every variable is only set when you have not set it already, so workarounds can be
 # overridden, e.g.:
-#   flatpak run --env=WEBKIT_DISABLE_DMABUF_RENDERER=0 com.anycubic.AnycubicSlicer
+#   flatpak run --env=WEBKIT_DISABLE_DMABUF_RENDERER=0 io.github.minetech13.AnycubicSlicer
 #
 # Extra switches:
 #   ANYCUBIC_SAFE_GFX=1     also disable WebKit compositing (blank Workbench pages)

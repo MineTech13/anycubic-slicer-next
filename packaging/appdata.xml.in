@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.anycubic.AnycubicSlicer</id>
+  <id>@APP_ID@</id>
   <name>AnycubicSlicer</name>
   <summary>3D printing software for Anycubic printers</summary>
   <metadata_license>CC0-1.0</metadata_license>

@@ -12,8 +12,9 @@ set -euo pipefail
 REPO="$(realpath "${1:?usage: $0 path/to/repo}")"
 # shellcheck source=scripts/lib/test-common.sh
 source "$(dirname "$0")/lib/test-common.sh"
+# shellcheck source=packaging/app.env
+source "$(dirname "$0")/../packaging/app.env"
 
-APP_ID=com.anycubic.AnycubicSlicer
 REMOTE=anycubic-slicer-test
 KEY_FILE="${FLATPAK_KEY_FILE:-$(dirname "$REPO")/key.gpg}"
 
@@ -46,6 +47,15 @@ fi
 check "installed ref is the stable branch" bash -c "flatpak info --user --show-ref $APP_ID | grep -qx 'app/$APP_ID/x86_64/stable'"
 check "launch command is anycubic-slicer" bash -c "flatpak info --user --show-metadata $APP_ID | grep -qx 'command=anycubic-slicer'"
 check "uses the GNOME runtime" bash -c "flatpak info --user --show-runtime $APP_ID | grep -q '^org.gnome.Platform/'"
+if [ -n "${LEGACY_APP_ID:-}" ]; then
+  legacy_info="$(flatpak remote-info --user "$REMOTE" "$LEGACY_APP_ID//stable" 2>&1 || true)"
+  if grep -qE "End-of-life-rebase: *app/$APP_ID/|End-of-life-rebase: *$APP_ID" <<<"$legacy_info"; then
+    pass "legacy $LEGACY_APP_ID redirects to $APP_ID"
+  else
+    fail "legacy $LEGACY_APP_ID is not rebased to $APP_ID"
+    while IFS= read -r line; do echo "        $line"; done <<<"$legacy_info"
+  fi
+fi
 
 FILES="$(flatpak info --user --show-location "$APP_ID")/files"
 echo "[contents]"
