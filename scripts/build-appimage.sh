@@ -20,7 +20,9 @@ OUT_DIR="$(realpath -m "${OUT_DIR:-$ROOT/dist}")"
 WORK_DIR="$(realpath -m "${WORK_DIR:-$ROOT/build}")"
 UPDATE_REPO="${UPDATE_REPO:-${GITHUB_REPOSITORY:-}}"
 ARCH=x86_64
-APP_NAME=AnycubicSlicer
+APP_NAME=AnycubicSlicer # file name prefix of the AppImage (the zsync update pattern relies on it)
+# shellcheck source=packaging/app.env
+source "$ROOT/packaging/app.env"
 
 DEB_FILE=""
 while [ $# -gt 0 ]; do
@@ -118,22 +120,24 @@ chmod +x "$APPDIR/bin/AnycubicSlicerNext"
 
 install -Dm755 "$ROOT/packaging/AppRun" "$APPDIR/AppRun"
 
-install -Dm644 "$ROOT/packaging/$APP_NAME.desktop" "$APPDIR/usr/share/applications/$APP_NAME.desktop"
-ln -s "usr/share/applications/$APP_NAME.desktop" "$APPDIR/$APP_NAME.desktop"
+install -d "$APPDIR/usr/share/applications"
+sed -e "s|^Icon=.*|Icon=$APP_ID|" "$ROOT/packaging/AnycubicSlicer.desktop" \
+  >"$APPDIR/usr/share/applications/$APP_ID.desktop"
+ln -s "usr/share/applications/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
 
 ICON_256="$RES_SRC/images/AnycubicSlicerNext_256px.png"
-[ -f "$ICON_256" ] || ICON_256="$RES_SRC/images/$APP_NAME.png"
-install -Dm644 "$ICON_256" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
-if [ -f "$RES_SRC/images/$APP_NAME.svg" ]; then
-  install -Dm644 "$RES_SRC/images/$APP_NAME.svg" "$APPDIR/usr/share/icons/hicolor/scalable/apps/$APP_NAME.svg"
+[ -f "$ICON_256" ] || ICON_256="$RES_SRC/images/AnycubicSlicer.png"
+install -Dm644 "$ICON_256" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_ID.png"
+if [ -f "$RES_SRC/images/AnycubicSlicer.svg" ]; then
+  install -Dm644 "$RES_SRC/images/AnycubicSlicer.svg" "$APPDIR/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
 fi
-ln -s "usr/share/icons/hicolor/256x256/apps/$APP_NAME.png" "$APPDIR/$APP_NAME.png"
-ln -s "$APP_NAME.png" "$APPDIR/.DirIcon"
+ln -s "usr/share/icons/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
+ln -s "$APP_ID.png" "$APPDIR/.DirIcon"
 
 mkdir -p "$APPDIR/usr/share/metainfo"
-sed -e "s|@VERSION@|$APP_VERSION|g" -e "s|@DATE@|$(date -u +%Y-%m-%d)|g" \
-  -e "s|@DESKTOP_ID@|$APP_NAME.desktop|g" -e "s|@FORMAT@|AppImage|g" \
-  "$ROOT/packaging/appdata.xml.in" >"$APPDIR/usr/share/metainfo/com.anycubic.AnycubicSlicer.appdata.xml"
+sed -e "s|@VERSION@|$APP_VERSION|g" -e "s|@DATE@|$(date -u +%Y-%m-%d)|g" -e "s|@APP_ID@|$APP_ID|g" \
+  -e "s|@DESKTOP_ID@|$APP_ID.desktop|g" -e "s|@FORMAT@|AppImage|g" \
+  "$ROOT/packaging/appdata.xml.in" >"$APPDIR/usr/share/metainfo/$APP_ID.appdata.xml"
 echo "$APP_VERSION" >"$APPDIR/VERSION"
 
 # --------------------------------------------------------------------------- appimagetool

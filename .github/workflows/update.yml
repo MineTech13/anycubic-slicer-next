@@ -88,6 +88,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/download-artifact@v8
         with:
           name: appimage
@@ -114,6 +116,7 @@ jobs:
           DEB_SHA256: ${{ needs.build-test.outputs.deb_sha256 }}
         run: |
           set -euo pipefail
+          source packaging/app.env
           test -n "$APP_VERSION" && test -n "$DEB_SHA256"
           tag="v$APP_VERSION"
           chmod +x dist/*.AppImage
@@ -127,7 +130,7 @@ jobs:
           ### Flatpak (recommended, updates via \`flatpak update\` / your software center)
           \`\`\`bash
           flatpak remote-add --user --if-not-exists anycubic-slicer $pages_url/anycubic-slicer.flatpakrepo
-          flatpak install --user anycubic-slicer com.anycubic.AnycubicSlicer
+          flatpak install --user anycubic-slicer $APP_ID
           \`\`\`
           Or install the single-file bundle \`$flatpak_bundle\` below; it uses the same update channel. More at [$pages_url]($pages_url).
 

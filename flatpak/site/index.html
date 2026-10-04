@@ -51,9 +51,10 @@ flatpak install --user anycubic-slicer @APP_ID@</code></pre>
   </section>
 
   <section>
-    <h2>Coming from another Anycubic Slicer Flatpak?</h2>
-    <p>Remove the old one first. Your settings in <code>~/.var/app/@APP_ID@</code> stay.</p>
-    <pre><code>flatpak uninstall @APP_ID@</code></pre>
+    <h2>Already installed an earlier build?</h2>
+    <p>Builds from this repo used to be called <code>@LEGACY_APP_ID@</code>. <code>flatpak update</code> moves them to <code>@APP_ID@</code> automatically and keeps your settings.</p>
+    <p>Have someone else's Anycubic Slicer Flatpak with that same ID installed (e.g. a downloaded bundle)? It can stay installed alongside, or remove it:</p>
+    <pre><code>flatpak uninstall @LEGACY_APP_ID@</code></pre>
   </section>
 
   <section>

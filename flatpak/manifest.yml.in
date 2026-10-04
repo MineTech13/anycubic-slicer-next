@@ -1,6 +1,7 @@
-# Flatpak manifest template. scripts/build-flatpak.sh fills in @DEB_URL@ and @DEB_SHA256@
+# Flatpak manifest template. scripts/build-flatpak.sh fills in @APP_ID@ (packaging/app.env),
+# @DEB_URL@ and @DEB_SHA256@
 # from Anycubic's apt repository; the app version is read from the package at build time.
-app-id: com.anycubic.AnycubicSlicer
+app-id: @APP_ID@
 runtime: org.gnome.Platform
 # Must ship webkit2gtk-4.1 + libsoup3 (GNOME 51 does; GNOME's development branch dropped 4.1).
 runtime-version: "51"
@@ -35,26 +36,26 @@ modules:
       # keep the Debian path as a symlink for anything that expects it.
       - cp -a deb/usr/share/AnycubicSlicerNext/resources /app/resources
       - mkdir -p /app/share/AnycubicSlicerNext && ln -s ../../resources /app/share/AnycubicSlicerNext/resources
-      - if [ -f deb/usr/LICENSE.txt ]; then install -Dm644 deb/usr/LICENSE.txt /app/share/licenses/com.anycubic.AnycubicSlicer/LICENSE.txt; fi
+      - if [ -f deb/usr/LICENSE.txt ]; then install -Dm644 deb/usr/LICENSE.txt /app/share/licenses/@APP_ID@/LICENSE.txt; fi
 
       - install -Dm755 anycubic-slicer.sh /app/bin/anycubic-slicer
-      - install -Dm644 com.anycubic.AnycubicSlicer.desktop /app/share/applications/com.anycubic.AnycubicSlicer.desktop
+      - install -Dm644 @APP_ID@.desktop /app/share/applications/@APP_ID@.desktop
 
       - >-
         install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicerNext_256px.png
-        /app/share/icons/hicolor/256x256/apps/com.anycubic.AnycubicSlicer.png
+        /app/share/icons/hicolor/256x256/apps/@APP_ID@.png
       - >-
         install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicer_128px.png
-        /app/share/icons/hicolor/128x128/apps/com.anycubic.AnycubicSlicer.png
+        /app/share/icons/hicolor/128x128/apps/@APP_ID@.png
       - >-
         install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicer.svg
-        /app/share/icons/hicolor/scalable/apps/com.anycubic.AnycubicSlicer.svg
+        /app/share/icons/hicolor/scalable/apps/@APP_ID@.svg
 
       - >-
         VERSION="$(tr -d '[:space:]' < deb/usr/share/AnycubicSlicerNext/resources/build-version.txt)" &&
         install -d /app/share/metainfo &&
-        sed "s|@VERSION@|$VERSION|g" com.anycubic.AnycubicSlicer.metainfo.xml.in
-        > /app/share/metainfo/com.anycubic.AnycubicSlicer.metainfo.xml
+        sed "s|@VERSION@|$VERSION|g" @APP_ID@.metainfo.xml.in
+        > /app/share/metainfo/@APP_ID@.metainfo.xml
 
     sources:
       - type: file
@@ -64,6 +65,6 @@ modules:
       - type: file
         path: anycubic-slicer.sh
       - type: file
-        path: com.anycubic.AnycubicSlicer.desktop
+        path: @APP_ID@.desktop
       - type: file
-        path: com.anycubic.AnycubicSlicer.metainfo.xml.in
+        path: @APP_ID@.metainfo.xml.in

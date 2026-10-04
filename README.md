@@ -8,12 +8,12 @@ Unofficial, **fully automated** AppImage and Flatpak builds of [Anycubic Slicer 
 
 ```bash
 flatpak remote-add --user --if-not-exists anycubic-slicer https://minetech13.github.io/anycubic-slicer-next/anycubic-slicer.flatpakrepo
-flatpak install --user anycubic-slicer com.anycubic.AnycubicSlicer
+flatpak install --user anycubic-slicer io.github.minetech13.AnycubicSlicer
 ```
 
 Or use the one-click install on the [Flatpak page](https://minetech13.github.io/anycubic-slicer-next/), or download the single-file `.flatpak` bundle from the [latest release](../../releases/latest). Every route updates through `flatpak update`, GNOME Software or Discover. The GNOME runtime comes from Flathub, so it works on any distro, including older ones the AppImage can't run on.
 
-Coming from another Anycubic Slicer Flatpak (e.g. develonrails' bundle)? Run `flatpak uninstall com.anycubic.AnycubicSlicer` first. Your settings stay.
+Installed it before October 2026? Builds from this repo used to be called `com.anycubic.AnycubicSlicer`. `flatpak update` moves them to `io.github.minetech13.AnycubicSlicer` automatically and keeps your settings. Another Anycubic Slicer Flatpak (e.g. develonrails' bundle) can stay installed alongside, or remove it with `flatpak uninstall com.anycubic.AnycubicSlicer`.
 
 ### AppImage
 
@@ -93,7 +93,7 @@ FUSE: new AppImages use the static type-2 runtime and **don't need `libfuse2`**.
 
 ## Troubleshooting
 
-The launchers set a few workarounds. Every one is **overridable**: set the variable yourself and it's left alone. For the Flatpak, pass variables with `flatpak run --env=NAME=value com.anycubic.AnycubicSlicer`, or permanently with `flatpak override --user --env=NAME=value com.anycubic.AnycubicSlicer`.
+The launchers set a few workarounds. Every one is **overridable**: set the variable yourself and it's left alone. For the Flatpak, pass variables with `flatpak run --env=NAME=value io.github.minetech13.AnycubicSlicer`, or permanently with `flatpak override --user --env=NAME=value io.github.minetech13.AnycubicSlicer`.
 
 | Symptom | Try |
 |---|---|
@@ -104,9 +104,9 @@ The launchers set a few workarounds. Every one is **overridable**: set the varia
 | `dlopen(): error loading libfuse.so.2` | You have an old AppImage from elsewhere; use a release from this repo, or add `--appimage-extract-and-run`. |
 | Crash with odd locales | `LC_ALL=C` is forced by default; `ANYCUBIC_KEEP_LOCALE=1` disables that. |
 
-Please include the terminal output when opening an issue (Flatpak: `flatpak run com.anycubic.AnycubicSlicer`).
+Please include the terminal output when opening an issue (Flatpak: `flatpak run io.github.minetech13.AnycubicSlicer`).
 
-**Flathub?** Not at the moment. Flathub needs a manual submission and review, the app ID would have to be one the maintainer controls (not `com.anycubic.*`), and the app ships Anycubic's prebuilt binaries instead of being built from source. The self-hosted repo above gives the same `flatpak update` experience.
+**Flathub?** Not at the moment. Flathub needs a manual submission and review, and the app ships Anycubic's prebuilt binaries instead of being built from source. The app ID is already one Flathub would accept. The self-hosted repo above gives the same `flatpak update` experience.
 
 ## Credits
 
@@ -114,4 +114,4 @@ Based on the manual work of [develonrails/anycubic-slicer-next](https://github.c
 
 ## Disclaimer
 
-Not affiliated with or endorsed by Anycubic. The Flatpak uses the `com.anycubic.AnycubicSlicer` ID so it replaces earlier community Flatpaks cleanly. Anycubic Slicer Next is © Anycubic; the scripts in this repository are MIT licensed (see [LICENSE](LICENSE)).
+Not affiliated with or endorsed by Anycubic. Both formats use the app ID `io.github.minetech13.AnycubicSlicer` (set in [`packaging/app.env`](packaging/app.env)) to make clear this is a community build. Anycubic Slicer Next is © Anycubic; the scripts in this repository are MIT licensed (see [LICENSE](LICENSE)).
