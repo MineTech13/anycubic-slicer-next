@@ -3,22 +3,12 @@
 #
 # Usage: scripts/test-appimage.sh path/to/AnycubicSlicer-VERSION-x86_64.AppImage
 #
-# Environment:
-#   LAUNCH_TEST     auto (default: run if xvfb-run is available) | 1 (required) | 0 (skip)
-#   LAUNCH_SECONDS  how long the app must stay alive headless (default: 45)
-#   LOG_DIR         where to put launch logs (default: ./test-logs)
+# Environment: LAUNCH_TEST, LAUNCH_SECONDS, LOG_DIR (see scripts/lib/test-common.sh)
 set -euo pipefail
 
 APPIMAGE="$(realpath "${1:?usage: $0 path/to/AppImage}")"
-LAUNCH_TEST="${LAUNCH_TEST:-auto}"
-LAUNCH_SECONDS="${LAUNCH_SECONDS:-45}"
-LOG_DIR="$(realpath -m "${LOG_DIR:-test-logs}")"
-
-failures=0
-pass() { printf '  \033[32mPASS\033[0m %s\n' "$*"; }
-fail() { printf '  \033[31mFAIL\033[0m %s\n' "$*"; failures=$((failures + 1)); }
-skip() { printf '  \033[33mSKIP\033[0m %s\n' "$*"; }
-check() { local desc="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$desc"; else fail "$desc"; fi; }
+# shellcheck source=scripts/lib/test-common.sh
+source "$(dirname "$0")/lib/test-common.sh"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -82,67 +72,14 @@ else
 fi
 
 echo "[launch]"
-run_launch=0
-case "$LAUNCH_TEST" in
-  1) run_launch=1 ;;
-  0) ;;
-  auto) command -v xvfb-run >/dev/null 2>&1 && run_launch=1 ;;
-esac
-
-if [ "$run_launch" = 1 ]; then
-  if ! command -v xvfb-run >/dev/null 2>&1; then
-    fail "LAUNCH_TEST=1 but xvfb-run is not installed"
-  else
-    mkdir -p "$LOG_DIR"
-    log="$LOG_DIR/launch.log"
-    home="$WORK/home"
-    # The slicer aborts if ~/.config does not exist yet.
-    mkdir -p "$home/.config" "$home/.local/share" "$home/.cache"
-    # Run in its own session: the slicer outlives the AppImage runtime process,
-    # so killing only the direct child is not enough.
-    HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_DATA_HOME="$home/.local/share" XDG_CACHE_HOME="$home/.cache" \
-      APPIMAGE_EXTRACT_AND_RUN=1 LIBGL_ALWAYS_SOFTWARE=1 GDK_BACKEND=x11 \
-      setsid xvfb-run -a -s "-screen 0 1920x1080x24" "$APPIMAGE" >"$log" 2>&1 &
-    pid=$!
-    rc=124
-    for _ in $(seq "$LAUNCH_SECONDS"); do
-      sleep 1
-      if ! kill -0 "$pid" 2>/dev/null; then
-        set +e; wait "$pid"; rc=$?; set -e
-        break
-      fi
-    done
-    kill -TERM -- "-$pid" 2>/dev/null || true
-    sleep 3
-    kill -KILL -- "-$pid" 2>/dev/null || true
-    wait "$pid" 2>/dev/null || true
-    echo "        exit code: $rc (124 = still running at timeout)"
-    if grep -qE 'error while loading shared libraries|symbol lookup error|version `GLIBC' "$log"; then
-      fail "dynamic linking error during launch"
-    elif grep -qE 'Segmentation fault|core dumped|Aborted' "$log" || [ "$rc" -eq 139 ] || [ "$rc" -eq 134 ]; then
-      fail "application crashed during launch"
-    elif [ "$rc" -eq 124 ]; then
-      pass "application stayed alive for ${LAUNCH_SECONDS}s"
-    else
-      fail "application exited early with code $rc"
-    fi
-    if grep -q 'add font of' "$log"; then
-      if grep 'add font of' "$log" | grep -qv 'returns 1'; then
-        fail "some bundled fonts failed to load (resource path problem)"
-      else
-        pass "bundled fonts loaded"
-      fi
-    fi
-    echo "        last log lines:"
-    grep -vE 'Gtk-CRITICAL|Failed to create hard link|^[[:space:]]*$' "$log" | tail -n 15 | sed 's/^/        | /' || true
-  fi
-else
-  skip "headless launch test (install xvfb or set LAUNCH_TEST=1)"
+if want_launch; then
+  home="$WORK/home"
+  # The slicer aborts if ~/.config does not exist yet.
+  mkdir -p "$home/.config" "$home/.local/share" "$home/.cache"
+  launch_check appimage-launch \
+    env HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_DATA_HOME="$home/.local/share" XDG_CACHE_HOME="$home/.cache" \
+    APPIMAGE_EXTRACT_AND_RUN=1 LIBGL_ALWAYS_SOFTWARE=1 GDK_BACKEND=x11 \
+    xvfb-run -a -s "-screen 0 1920x1080x24" "$APPIMAGE"
 fi
 
-echo
-if [ "$failures" -gt 0 ]; then
-  echo "$failures check(s) failed"
-  exit 1
-fi
-echo "All checks passed"
+finish

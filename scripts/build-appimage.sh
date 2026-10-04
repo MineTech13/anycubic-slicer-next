@@ -37,6 +37,7 @@ mkdir -p "$OUT_DIR" "$WORK_DIR"
 
 # --------------------------------------------------------------------------- download
 DEB_SHA256=""
+DEB_URL=""
 DEB_VERSION=""
 DEB_FILENAME=""
 if [ -z "$DEB_FILE" ]; then
@@ -120,7 +121,9 @@ install -Dm755 "$ROOT/packaging/AppRun" "$APPDIR/AppRun"
 install -Dm644 "$ROOT/packaging/$APP_NAME.desktop" "$APPDIR/usr/share/applications/$APP_NAME.desktop"
 ln -s "usr/share/applications/$APP_NAME.desktop" "$APPDIR/$APP_NAME.desktop"
 
-install -Dm644 "$RES_SRC/images/$APP_NAME.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+ICON_256="$RES_SRC/images/AnycubicSlicerNext_256px.png"
+[ -f "$ICON_256" ] || ICON_256="$RES_SRC/images/$APP_NAME.png"
+install -Dm644 "$ICON_256" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
 if [ -f "$RES_SRC/images/$APP_NAME.svg" ]; then
   install -Dm644 "$RES_SRC/images/$APP_NAME.svg" "$APPDIR/usr/share/icons/hicolor/scalable/apps/$APP_NAME.svg"
 fi
@@ -129,6 +132,7 @@ ln -s "$APP_NAME.png" "$APPDIR/.DirIcon"
 
 mkdir -p "$APPDIR/usr/share/metainfo"
 sed -e "s|@VERSION@|$APP_VERSION|g" -e "s|@DATE@|$(date -u +%Y-%m-%d)|g" \
+  -e "s|@DESKTOP_ID@|$APP_NAME.desktop|g" -e "s|@FORMAT@|AppImage|g" \
   "$ROOT/packaging/appdata.xml.in" >"$APPDIR/usr/share/metainfo/com.anycubic.AnycubicSlicer.appdata.xml"
 echo "$APP_VERSION" >"$APPDIR/VERSION"
 
@@ -178,6 +182,7 @@ out="app_version=$APP_VERSION
 deb_version=$DEB_VERSION
 deb_filename=$DEB_FILENAME
 deb_sha256=$DEB_SHA256
+deb_url=$DEB_URL
 appimage=$OUTPUT"
 echo "$out"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then

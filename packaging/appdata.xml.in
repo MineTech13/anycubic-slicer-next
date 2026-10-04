@@ -10,9 +10,9 @@
   </developer>
   <description>
     <p>Anycubic Slicer Next prepares 3D models for printing on Anycubic FDM printers.</p>
-    <p>This AppImage is an unofficial repackaging of the official Anycubic Debian package.</p>
+    <p>This @FORMAT@ is an unofficial repackaging of the official Anycubic Debian package.</p>
   </description>
-  <launchable type="desktop-id">AnycubicSlicer.desktop</launchable>
+  <launchable type="desktop-id">@DESKTOP_ID@</launchable>
   <url type="homepage">https://www.anycubic.com/pages/anycubic-slicer-next</url>
   <releases>
     <release version="@VERSION@" date="@DATE@"/>
