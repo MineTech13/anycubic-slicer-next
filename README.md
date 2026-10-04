@@ -52,6 +52,7 @@ The Flatpak repo on GitHub Pages is rebuilt on every release and only contains t
 2. **Settings → Actions → General → Workflow permissions:** make sure workflows are allowed to run. The jobs request the permissions they need themselves.
 3. **Flatpak signing key** (one time). Generate a key without a passphrase in a throwaway directory:
    ```bash
+   mkdir -m 700 /tmp/acs-key
    gpg --homedir /tmp/acs-key --batch --passphrase '' --quick-gen-key "Anycubic Slicer Next Flatpak <noreply@github.com>" ed25519 sign never
    ```
    Print the private key and paste it into **Settings → Secrets and variables → Actions → New repository secret** named `FLATPAK_GPG_KEY`:
