@@ -79,6 +79,7 @@ jobs:
     needs: check
     if: needs.check.outputs.new == 'true'
     uses: ./.github/workflows/build-test.yml
+    secrets: inherit
 
   publish:
     needs: build-test
@@ -91,6 +92,17 @@ jobs:
         with:
           name: appimage
           path: dist
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: flatpak
+          path: dist
+
+      - name: Require a signed Flatpak repo
+        if: needs.build-test.outputs.flatpak_signed != 'true'
+        run: |
+          echo "::error::The Flatpak repo was built unsigned. Add the FLATPAK_GPG_KEY repository secret (see README) and re-run with force."
+          exit 1
 
       - name: Publish GitHub release
         env:
@@ -106,11 +118,20 @@ jobs:
           tag="v$APP_VERSION"
           chmod +x dist/*.AppImage
           appimage="$(basename dist/*.AppImage)"
+          flatpak_bundle="$(basename dist/*.flatpak)"
+          pages_url="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GH_REPO#*/}"
 
           cat >notes.md <<EOF
-          Anycubic Slicer Next **$APP_VERSION** as AppImage, built automatically from the official Anycubic Ubuntu 24.04 package.
+          Anycubic Slicer Next **$APP_VERSION** as AppImage and Flatpak, built automatically from the official Anycubic Ubuntu 24.04 package.
 
-          ### Install
+          ### Flatpak (recommended, updates via \`flatpak update\` / your software center)
+          \`\`\`bash
+          flatpak remote-add --user --if-not-exists anycubic-slicer $pages_url/anycubic-slicer.flatpakrepo
+          flatpak install --user anycubic-slicer com.anycubic.AnycubicSlicer
+          \`\`\`
+          Or install the single-file bundle \`$flatpak_bundle\` below; it uses the same update channel. More at [$pages_url]($pages_url).
+
+          ### AppImage
           \`\`\`bash
           chmod +x $appimage
           ./$appimage
@@ -120,7 +141,7 @@ jobs:
 
           ### Verify
           \`\`\`bash
-          sha256sum -c $appimage.sha256
+          sha256sum -c $appimage.sha256 $flatpak_bundle.sha256
           \`\`\`
 
           ### Upstream package
@@ -143,3 +164,20 @@ jobs:
               --latest
           fi
           echo "Published [$tag](https://github.com/$GH_REPO/releases/tag/$tag)" >>"$GITHUB_STEP_SUMMARY"
+
+  deploy-pages:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      # Deploys the "github-pages" artifact (Flatpak repo + landing page) built and
+      # tested in build-test. Requires Settings → Pages → Source: GitHub Actions.
+      - name: Deploy Flatpak repo to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5

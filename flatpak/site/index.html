@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anycubic Slicer Next — Flatpak</title>
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #f6f7f9; --fg: #1d2330; --muted: #5b6475; --card: #fff; --line: #dde1e8; --accent: #1d5cff; --code: #eef1f6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171d; --fg: #e6e9ef; --muted: #9aa3b2; --card: #1c2028; --line: #2c323d; --accent: #6d95ff; --code: #242a34; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 64px; }
+  header { display: flex; gap: 18px; align-items: center; margin-bottom: 28px; }
+  header img { width: 72px; height: 72px; }
+  h1 { font-size: 1.7rem; margin: 0; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; margin: 16px 0; }
+  h2 { font-size: 1.1rem; margin: 0 0 10px; }
+  pre { background: var(--code); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0; font-size: .9rem; }
+  code { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; }
+  a { color: var(--accent); }
+  .btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; }
+  .muted { color: var(--muted); font-size: .92rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="">
+    <div>
+      <h1>Anycubic Slicer Next</h1>
+      <p class="sub">Unofficial Flatpak · current version <strong>@VERSION@</strong></p>
+    </div>
+  </header>
+
+  <section>
+    <h2>Install</h2>
+    <p><a class="btn" href="@APP_ID@.flatpakref">Install with your software center</a></p>
+    <p>Or from a terminal:</p>
+    <pre><code>flatpak remote-add --user --if-not-exists anycubic-slicer @PAGES_URL@/anycubic-slicer.flatpakrepo
+flatpak install --user anycubic-slicer @APP_ID@</code></pre>
+    <p class="muted">The GNOME runtime is installed from Flathub automatically.</p>
+  </section>
+
+  <section>
+    <h2>Updates</h2>
+    <p>New Anycubic releases are built automatically. <code>flatpak update</code>, GNOME Software and Discover pick them up like any other app.</p>
+  </section>
+
+  <section>
+    <h2>Coming from another Anycubic Slicer Flatpak?</h2>
+    <p>Remove the old one first. Your settings in <code>~/.var/app/@APP_ID@</code> stay.</p>
+    <pre><code>flatpak uninstall @APP_ID@</code></pre>
+  </section>
+
+  <section>
+    <h2>Other downloads</h2>
+    <p>AppImage and single-file <code>.flatpak</code> bundles are on the <a href="https://github.com/@GH_REPO@/releases/latest">releases page</a>. Source, troubleshooting and issues: <a href="https://github.com/@GH_REPO@">github.com/@GH_REPO@</a>.</p>
+  </section>
+
+  <p class="muted">Not affiliated with or endorsed by Anycubic. Anycubic Slicer Next is © Anycubic.</p>
+</main>
+</body>
+</html>

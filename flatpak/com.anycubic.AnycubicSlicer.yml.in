@@ -1,0 +1,69 @@
+# Flatpak manifest template. scripts/build-flatpak.sh fills in @DEB_URL@ and @DEB_SHA256@
+# from Anycubic's apt repository; the app version is read from the package at build time.
+app-id: com.anycubic.AnycubicSlicer
+runtime: org.gnome.Platform
+# Must ship webkit2gtk-4.1 + libsoup3 (GNOME 51 does; GNOME's development branch dropped 4.1).
+runtime-version: "51"
+sdk: org.gnome.Sdk
+command: anycubic-slicer
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=pulseaudio
+  # Printer connectivity (LAN + cloud)
+  - --share=network
+  # GPU for the 3D view, cameras for printer monitoring
+  - --device=all
+  # Loading/saving models anywhere in $HOME and on removable media
+  - --filesystem=home
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=/run/media
+  - --filesystem=/media
+
+modules:
+  - name: anycubic-slicer
+    buildsystem: simple
+    build-commands:
+      - ar x anycubic-slicer.deb
+      - mkdir deb && tar -xf data.tar.* -C deb
+
+      - install -Dm755 deb/usr/bin/AnycubicSlicerNext /app/bin/AnycubicSlicerNext
+      # Only runtime shared objects; skip static archives and cmake files.
+      - mkdir -p /app/lib && find deb/usr/lib -maxdepth 1 \( -name '*.so' -o -name '*.so.*' \) -exec cp -a {} /app/lib/ \;
+      # The binary looks for resources/ next to bin/ (fonts fail to load otherwise);
+      # keep the Debian path as a symlink for anything that expects it.
+      - cp -a deb/usr/share/AnycubicSlicerNext/resources /app/resources
+      - mkdir -p /app/share/AnycubicSlicerNext && ln -s ../../resources /app/share/AnycubicSlicerNext/resources
+      - if [ -f deb/usr/LICENSE.txt ]; then install -Dm644 deb/usr/LICENSE.txt /app/share/licenses/com.anycubic.AnycubicSlicer/LICENSE.txt; fi
+
+      - install -Dm755 anycubic-slicer.sh /app/bin/anycubic-slicer
+      - install -Dm644 com.anycubic.AnycubicSlicer.desktop /app/share/applications/com.anycubic.AnycubicSlicer.desktop
+
+      - >-
+        install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicerNext_256px.png
+        /app/share/icons/hicolor/256x256/apps/com.anycubic.AnycubicSlicer.png
+      - >-
+        install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicer_128px.png
+        /app/share/icons/hicolor/128x128/apps/com.anycubic.AnycubicSlicer.png
+      - >-
+        install -Dm644 deb/usr/share/AnycubicSlicerNext/resources/images/AnycubicSlicer.svg
+        /app/share/icons/hicolor/scalable/apps/com.anycubic.AnycubicSlicer.svg
+
+      - >-
+        VERSION="$(tr -d '[:space:]' < deb/usr/share/AnycubicSlicerNext/resources/build-version.txt)" &&
+        install -d /app/share/metainfo &&
+        sed "s|@VERSION@|$VERSION|g" com.anycubic.AnycubicSlicer.metainfo.xml.in
+        > /app/share/metainfo/com.anycubic.AnycubicSlicer.metainfo.xml
+
+    sources:
+      - type: file
+        url: "@DEB_URL@"
+        sha256: "@DEB_SHA256@"
+        dest-filename: anycubic-slicer.deb
+      - type: file
+        path: anycubic-slicer.sh
+      - type: file
+        path: com.anycubic.AnycubicSlicer.desktop
+      - type: file
+        path: com.anycubic.AnycubicSlicer.metainfo.xml.in

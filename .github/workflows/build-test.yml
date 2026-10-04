@@ -1,9 +1,16 @@
 name: Build & test
 
-# Reusable workflow: downloads the current official .deb, builds the AppImage,
-# runs the smoke tests and uploads the result as the "appimage" artifact.
+# Reusable workflow: downloads the current official .deb, builds the AppImage and the
+# Flatpak from it, runs the smoke tests and uploads the artifacts:
+#   appimage      AppImage + .zsync + .sha256
+#   flatpak       single-file .flatpak bundle + .sha256
+#   github-pages  Pages site with the OSTree repo (deployed by update.yml)
 on:
   workflow_call:
+    secrets:
+      FLATPAK_GPG_KEY:
+        description: ASCII-armored private key that signs the Flatpak repo
+        required: false
     outputs:
       app_version:
         description: Real application version (e.g. 2.0.0.5)
@@ -17,6 +24,9 @@ on:
       deb_sha256:
         description: SHA256 of the .deb the AppImage was built from
         value: ${{ jobs.build.outputs.deb_sha256 }}
+      flatpak_signed:
+        description: Whether the Flatpak repo was GPG-signed
+        value: ${{ jobs.build-flatpak.outputs.signed }}
 
 permissions:
   contents: read
@@ -30,6 +40,7 @@ jobs:
       deb_version: ${{ steps.build.outputs.deb_version }}
       deb_filename: ${{ steps.build.outputs.deb_filename }}
       deb_sha256: ${{ steps.build.outputs.deb_sha256 }}
+      deb_url: ${{ steps.build.outputs.deb_url }}
     steps:
       - uses: actions/checkout@v7
 
@@ -88,6 +99,85 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-logs
+          path: test-logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-flatpak:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    outputs:
+      signed: ${{ steps.build.outputs.signed }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build Flatpak
+        id: build
+        env:
+          # Same .deb as the AppImage, so both formats always contain the same build.
+          DEB_URL: ${{ needs.build.outputs.deb_url }}
+          DEB_SHA256: ${{ needs.build.outputs.deb_sha256 }}
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+        run: scripts/build-flatpak.sh
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: flatpak
+          path: dist/*.flatpak*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+      - name: Upload Pages site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/site/
+          retention-days: 7
+
+  test-flatpak:
+    needs: [build, build-flatpak]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Flatpak
+        run: |
+          # Ubuntu 24.04 blocks unprivileged user namespaces, which bubblewrap needs.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            flatpak xvfb xauth dbus-daemon desktop-file-utils appstream
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: github-pages
+          path: pages-artifact
+
+      - name: Unpack Pages site
+        run: |
+          mkdir site
+          tar -xf pages-artifact/artifact.tar -C site
+          du -sh site
+
+      - name: Smoke test
+        env:
+          EXPECTED_VERSION: ${{ needs.build.outputs.app_version }}
+          LAUNCH_TEST: "1"
+          LAUNCH_SECONDS: "60"
+          LOG_DIR: test-logs
+        run: scripts/test-flatpak.sh site/repo
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: flatpak-test-logs
           path: test-logs/
           if-no-files-found: ignore
           retention-days: 7
