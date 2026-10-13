@@ -2,19 +2,41 @@
 # Query Anycubic's apt repository for the current AnycubicSlicerNext .deb.
 #
 # Prints KEY=VALUE lines (and appends them to $GITHUB_OUTPUT when set):
-#   deb_url, deb_filename, deb_version, deb_sha256, deb_size, hint_version
+#   repo_url, deb_url, deb_filename, deb_version, deb_sha256, deb_size, hint_version
 set -euo pipefail
 
+GLOBAL_URL="https://cdn-universe-slicer.anycubic.com/prod"
+CHINA_URL="https://cdn-platform-slicer.anycubicloud.com/prod"
+
+# Both CDNs are official Anycubic mirrors of the same repository. The other one is
+# tried when the preferred one is unreachable (e.g. it served an expired TLS
+# certificate in October 2026). TLS verification always stays on.
 REGION="${REGION:-global}"
 case "$REGION" in
-  global) REPO_URL="https://cdn-universe-slicer.anycubic.com/prod" ;;
-  china)  REPO_URL="https://cdn-platform-slicer.anycubicloud.com/prod" ;;
+  global) MIRRORS=("$GLOBAL_URL" "$CHINA_URL") ;;
+  china)  MIRRORS=("$CHINA_URL" "$GLOBAL_URL") ;;
   *) echo "Unknown REGION: $REGION (use global or china)" >&2; exit 1 ;;
 esac
-PACKAGES_URL="$REPO_URL/dists/noble/main/binary-amd64/Packages"
+PACKAGES_PATH="dists/noble/main/binary-amd64/Packages"
 PACKAGE_NAME="anycubicslicernext"
 
-packages="$(curl -fsSL --retry 5 --retry-delay 5 "$PACKAGES_URL")"
+warn() {
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning::$*" >&2; else echo "Warning: $*" >&2; fi
+}
+
+REPO_URL=""
+for mirror in "${MIRRORS[@]}"; do
+  if packages="$(curl -fsSL --retry 5 --retry-delay 5 "$mirror/$PACKAGES_PATH")"; then
+    REPO_URL="$mirror"
+    break
+  fi
+  warn "Could not fetch $mirror/$PACKAGES_PATH, trying the next mirror"
+done
+if [ -z "$REPO_URL" ]; then
+  echo "No Anycubic mirror reachable: ${MIRRORS[*]}" >&2
+  exit 1
+fi
+PACKAGES_URL="$REPO_URL/$PACKAGES_PATH"
 
 # Pick the stanza for our package; if there are several, take the highest version.
 stanza="$(awk -v pkg="$PACKAGE_NAME" '
@@ -48,7 +70,8 @@ done
 # The authoritative version is read from the extracted package during the build.
 hint_version="$(grep -oE 'v[0-9]+(\.[0-9]+){2,3}' <<<"$(basename "$deb_filename")" | head -1 | tr -d v || true)"
 
-out="deb_url=$REPO_URL/$deb_filename
+out="repo_url=$REPO_URL
+deb_url=$REPO_URL/$deb_filename
 deb_filename=$(basename "$deb_filename")
 deb_version=$deb_version
 deb_sha256=$deb_sha256

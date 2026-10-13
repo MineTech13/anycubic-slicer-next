@@ -77,7 +77,7 @@ scripts/build-flatpak.sh                  # needs flatpak + flatpak-builder → 
 scripts/test-flatpak.sh build/site/repo   # installs from the local repo and smoke-tests it
 ```
 
-`REGION=china` uses Anycubic's China CDN.
+`REGION=china` prefers Anycubic's China CDN. If the preferred CDN is unreachable, the other one is used automatically.
 
 ## Requirements
 
